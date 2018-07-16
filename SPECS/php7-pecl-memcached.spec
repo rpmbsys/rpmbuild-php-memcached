@@ -1,30 +1,28 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2016 Remi Collet
+# Copyright (c) 2009-2017 Remi Collet
 # License: CC-BY-SA
-# http://creativecommons.org/licenses/by-sa/3.0/
+# http://creativecommons.org/licenses/by-sa/4.0/
 #
 # Please, preserve the changelog entries
 #
 
-%global with_zts    0%{?__ztsphp:1}
-%global with_tests  0%{?_with_tests:1}
+%global with_zts    0%{!?_without_zts:%{?__ztsphp:1}}
+%global with_tests  0%{!?_without_tests:1}
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
-%global ini_name  50-%{pecl_name}.ini
+%global ini_name    50-%{pecl_name}.ini
 
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
-Version:      2.2.0
-Release:      7%{?dist}
-# memcached is PHP, FastLZ is MIT
-License:      PHP and MIT
+Version:      3.0.4
+Release:      1%{?dist}
+License:      PHP
 Group:        Development/Languages
 URL:          http://pecl.php.net/package/%{pecl_name}
 
 Source0:      http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 
-# 5.2.10 required to HAVE_JSON enabled
 BuildRequires: php-devel >= 5.2.10
 BuildRequires: php-pear
 BuildRequires: php-json
@@ -33,9 +31,10 @@ BuildRequires: php-pecl-igbinary-devel
 BuildRequires: php-pecl-msgpack-devel
 %endif
 BuildRequires: libevent-devel  > 2
-BuildRequires: libmemcached-devel > 1
+BuildRequires: libmemcached-devel > 1.0.16
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
+BuildRequires: fastlz-devel
 %if %{with_tests}
 BuildRequires: memcached
 %endif
@@ -44,11 +43,11 @@ Requires(post): %{__pecl}
 Requires(postun): %{__pecl}
 
 Requires:     php-json%{?_isa}
-Requires:     php-pecl-igbinary%{?_isa}
+Requires:     php-igbinary%{?_isa}
 Requires:     php(zend-abi) = %{php_zend_api}
 Requires:     php(api) = %{php_core_api}
 %ifnarch ppc64
-Requires:     php-pecl-msgpack%{?_isa}
+Requires:     php-msgpack%{?_isa}
 %endif
 
 Provides:     php-%{pecl_name} = %{version}
@@ -75,16 +74,26 @@ It also provides a session handler (memcached).
 
 %prep 
 %setup -c -q
-
 mv %{pecl_name}-%{version}%{?prever} NTS
 
+# Don't install/register tests
+sed -e 's/role="test"/role="src"/' \
+    -e '/LICENSE/s/role="doc"/role="src"/' \
+    -e '/name=.fastlz/d' \
+    -i package.xml
+
+rm -r NTS/fastlz
+
+cd NTS
+
 # Chech version as upstream often forget to update this
-extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' NTS/php_memcached.h)
-if test "x${extver}" != "x%{version}"; then
+extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
+if test "x${extver}" != "x%{version}%{?gh_date:-dev}%{?intver}"; then
    : Error: Upstream HTTP version is now ${extver}, expecting %{version}.
    : Update the pdover macro and rebuild.
    exit 1
 fi
+cd ..
 
 cat > %{ini_name} << 'EOF'
 ; Enable %{pecl_name} extension module
@@ -123,6 +132,7 @@ peclconf() {
            --enable-memcached-msgpack \
 %endif
            --enable-memcached-protocol \
+           --with-system-fastlz \
            --with-php-config=$1
 }
 cd NTS
@@ -155,11 +165,8 @@ make install -C ZTS INSTALL_ROOT=%{buildroot}
 install -D -m 644 %{ini_name} %{buildroot}%{php_ztsinidir}/%{ini_name}
 %endif
 
-# Test & Documentation
+# Documentation
 cd NTS
-for i in $(grep 'role="test"' ../package.xml | sed -e 's/^.*name="//;s/".*$//')
-do install -Dpm 644 $i %{buildroot}%{pecl_testdir}/%{pecl_name}/$i
-done
 for i in $(grep 'role="doc"' ../package.xml | sed -e 's/^.*name="//;s/".*$//')
 do install -Dpm 644 $i %{buildroot}%{pecl_docdir}/%{pecl_name}/$i
 done
@@ -191,10 +198,15 @@ OPT="-n"
 %endif
 
 %if %{with_tests}
+# XFAIL and very slow so no value
+rm ?TS/tests/expire.phpt
+
 ret=0
 
 : Launch the Memcached service
-memcached -p 11211 -U 11211      -d -P $PWD/memcached.pid
+port=$(%{__php} -r 'echo 10000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + PHP_INT_SIZE;')
+memcached -p $port -U $port      -d -P $PWD/memcached.pid
+sed -e "s/11211/$port/" -i ?TS/tests/*
 
 : Run the upstream test Suite for NTS extension
 pushd NTS
@@ -203,7 +215,7 @@ TEST_PHP_EXECUTABLE=%{__php} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
 REPORT_EXIT_STATUS=1 \
-%{__php} -n run-tests.php || ret=1
+%{__php} -n run-tests.php --show-diff || ret=1
 popd
 
 %if %{with_zts}
@@ -214,7 +226,7 @@ TEST_PHP_EXECUTABLE=%{__ztsphp} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
 REPORT_EXIT_STATUS=1 \
-%{__ztsphp} -n run-tests.php || ret=1
+%{__ztsphp} -n run-tests.php --show-diff || ret=1
 popd
 %endif
 
@@ -228,8 +240,9 @@ exit $ret
 
 
 %files
+%{!?_licensedir:%global license %%doc}
+%license NTS/LICENSE
 %doc %{pecl_docdir}/%{pecl_name}
-%doc %{pecl_testdir}/%{pecl_name}
 %{pecl_xmldir}/%{name}.xml
 
 %config(noreplace) %{php_inidir}/%{ini_name}
@@ -242,6 +255,41 @@ exit $ret
 
 
 %changelog
+* Tue Nov 21 2017 Remi Collet <remi@remirepo.net> - 3.0.4-1
+- Update to 3.0.4
+
+* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.3-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
+
+* Thu Jul 27 2017 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
+
+* Mon Feb 20 2017 Remi Collet <remi@fedoraproject.org> - 3.0.3-1
+- update to 3.0.3 (php 7, stable)
+- build with --enable-memcached-protocol option
+
+* Mon Feb 13 2017 Remi Collet <remi@fedoraproject.org> - 3.0.2-1
+- update to 3.0.2 (php 7, stable)
+
+* Thu Feb  9 2017 Remi Collet <remi@fedoraproject.org> - 3.0.1-1
+- update to 3.0.1 (php 7, stable)
+- switch to pecl sources
+- enable test suite
+- open https://github.com/php-memcached-dev/php-memcached/pull/319
+  fix test suite for 32bits build
+
+* Mon Nov 14 2016 Remi Collet <remi@fedoraproject.org> - 3.0.0-0.2.20160217git6ace07d
+- rebuild for https://fedoraproject.org/wiki/Changes/php71
+
+* Mon Jun 27 2016 Remi Collet <rcollet@redhat.com> - 3.0.0-0.1.20160217git6ace07d
+- git snapshopt for PHP 7
+- don't install/register tests
+- fix license installation
+
+* Wed Feb 10 2016 Remi Collet <remi@fedoraproject.org> - 2.2.0-8
+- drop scriptlets (replaced by file triggers in php-pear)
+- cleanup
+
 * Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 2.2.0-7
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
 
