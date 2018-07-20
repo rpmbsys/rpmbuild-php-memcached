@@ -16,7 +16,7 @@
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      2.2.0
-Release:      8%{?dist}
+Release:      9%{?dist}
 # memcached is PHP, FastLZ is MIT
 License:      PHP and MIT
 Group:        Development/Languages
@@ -32,7 +32,11 @@ BuildRequires: php-pecl-igbinary-devel
 %ifnarch ppc64
 BuildRequires: php-pecl-msgpack-devel
 %endif
+%if 0%{?rhel} >= 7
 BuildRequires: libevent-devel
+%else
+BuildRequires: libevent2-devel
+%endif
 BuildRequires: libmemcached-devel > 1
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
@@ -242,9 +246,11 @@ exit $ret
 
 
 %changelog
+* Fri Jul 20 2018 Alexander Ursu <alexander.ursu@gmail.com> - 2.2.0-9
+- corrected libevent package name for CentOS 6
+
 * Fri Jul 20 2018 Alexander Ursu <alexander.ursu@gmail.com> - 2.2.0-8
 - Build for PHP 5.6
-- remove strictness for libevent library (to allow CentOS 6 build)
 
 * Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 2.2.0-7
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
