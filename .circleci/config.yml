@@ -163,6 +163,7 @@ jobs:
     machine:
       docker_layer_caching: true
     environment:
+      LIBMEMC_VERSION: 1.0.18-10
       IGBINARY_VERSION: 2.0.7-1
       MSGPACK_VERSION: 0.5.7-3
     steps:
@@ -220,6 +221,27 @@ jobs:
               sudo chown -R centos:centos ~/php5/el7/RPMS
               docker cp -a ~/php5/el7/RPMS rpmbuild_webrepo_1:/home/centos-7/rpmbuild/
             fi
+      - run:
+          name: Checkout libmemcached
+          command: |
+            git clone https://github.com/aursu/rpmbuild-libmemcached.git
+            cd rpmbuild-libmemcached
+            git checkout $LIBMEMC_VERSION
+      - run:
+          name: Build libmemcached
+          command: |
+            docker run -ti --rm --net buildnet -u root aursu/rpmbuild:7-build \
+            yum -q list --disablerepo=* --enablerepo custom libmemcached-devel | grep -q $LIBMEMC_VERSION ||
+            {
+              docker pull aursu/libmemcbuild:el7
+              docker-compose -f rpmbuild-libmemcached/docker-compose.yml up centos7libmemcbuild
+            }
+            docker run -ti --rm --net buildnet -u root aursu/rpmbuild:6-build \
+            yum -q list --disablerepo=* --enablerepo custom libmemcached-devel | grep -q $LIBMEMC_VERSION ||
+            {
+              docker pull aursu/libmemcbuild:el6
+              docker-compose -f rpmbuild-libmemcached/docker-compose.yml up centos6libmemcbuild
+            }
       - run:
           name: Checkout PHP igbinary pecl module
           command: |
