@@ -13,9 +13,7 @@ services:
       - buildnet
     build:
       context: .
-      dockerfile: Dockerfile.base
-      args:
-        centos: 6
+      dockerfile: Dockerfile.6-base
       network: buildnet
     image: aursu/peclbuild:6-memcached-base
   centos7memcachedbuild:

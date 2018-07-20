@@ -1,12 +1,11 @@
-ARG centos=7
 ARG image=build
 
-FROM aursu/pearbuild:${centos}-${image}
+FROM aursu/pearbuild:6-${image}
 
 RUN yum -y --enablerepo custom install \
         cyrus-sasl-devel \
         fastlz-devel \
-        libevent-devel \
+        libevent2-devel \
         libmemcached-devel \
         php-pecl-igbinary-devel \
         php-pecl-msgpack-devel \

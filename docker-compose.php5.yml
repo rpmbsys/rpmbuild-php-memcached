@@ -15,9 +15,8 @@ services:
       - buildnet
     build:
       context: .
-      dockerfile: Dockerfile.base
+      dockerfile: Dockerfile.6-base
       args:
-        centos: 6
         image: build-php5
       network: buildnet
     image: aursu/peclbuild:6-memcached-base-php5
