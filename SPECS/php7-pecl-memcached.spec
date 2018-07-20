@@ -16,7 +16,7 @@
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      3.0.4
-Release:      1%{?dist}
+Release:      2%{?dist}
 License:      PHP
 Group:        Development/Languages
 URL:          http://pecl.php.net/package/%{pecl_name}
@@ -147,7 +147,6 @@ peclconf %{_bindir}/zts-php-config
 make %{?_smp_mflags}
 %endif
 
-
 %install
 # Install the NTS extension
 make install -C NTS INSTALL_ROOT=%{buildroot}
@@ -170,14 +169,6 @@ cd NTS
 for i in $(grep 'role="doc"' ../package.xml | sed -e 's/^.*name="//;s/".*$//')
 do install -Dpm 644 $i %{buildroot}%{pecl_docdir}/%{pecl_name}/$i
 done
-
-%post
-%{pecl_install} %{pecl_xmldir}/%{name}.xml >/dev/null || :
-
-%postun
-if [ $1 -eq 0 ] ; then
-    %{pecl_uninstall} %{pecl_name} >/dev/null || :
-fi
 
 %check
 OPT="-n"
@@ -238,6 +229,13 @@ fi
 exit $ret
 %endif
 
+%post
+%{pecl_install} %{pecl_xmldir}/%{name}.xml >/dev/null || :
+
+%postun
+if [ $1 -eq 0 ] ; then
+    %{pecl_uninstall} %{pecl_name} >/dev/null || :
+fi
 
 %files
 %{!?_licensedir:%global license %%doc}
@@ -255,6 +253,9 @@ exit $ret
 
 
 %changelog
+* Fri Jul 20 2018 Alexander Ursu <alexander.ursu@gmail.com> - 3.0.4-2
+- Build for CentOS
+
 * Tue Nov 21 2017 Remi Collet <remi@remirepo.net> - 3.0.4-1
 - Update to 3.0.4
 
