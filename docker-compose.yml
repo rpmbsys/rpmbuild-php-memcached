@@ -1,0 +1,51 @@
+version: "3.5"
+services:
+  centos7memcachedbuildbase:
+    networks:
+      - buildnet
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      network: buildnet
+    image: aursu/peclbuild:7-memcached-base
+  centos6memcachedbuildbase:
+    networks:
+      - buildnet
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      args:
+        centos: 6
+      network: buildnet
+    image: aursu/peclbuild:6-memcached-base
+  centos7memcachedbuild:
+    volumes:
+      - rpms:/home/centos/rpmbuild/SRPMS
+      - rpm7:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+    image: aursu/peclbuild:7-memcached
+    depends_on:
+      - centos7memcachedbuildbase
+  centos6memcachedbuild:
+    volumes:
+      - rpms:/home/centos/rpmbuild/SRPMS
+      - rpm6:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        centos: 6
+    image: aursu/peclbuild:6-memcached
+
+networks:
+  buildnet:
+    external: true
+    name: buildnet
+
+volumes:
+  rpms:
+    name: rpms
+  rpm6:
+    name: rpm6
+  rpm7:
+    name: rpm7
