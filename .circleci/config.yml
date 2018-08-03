@@ -134,11 +134,6 @@ jobs:
       - run:
           name: Build RPM packages
           command: docker-compose up
-      - save_cache:
-          key: rpm-cache-v7-{{ checksum "requirements.txt" }}-{{ checksum "SPECS/php7-pecl-memcached.spec" }}
-          paths:
-            - ~/el6/RPMS
-            - ~/el7/RPMS
       - run:
           name: Copy RPM packages
           command: |
@@ -147,6 +142,11 @@ jobs:
             docker cp rpmbuild_webrepo_1:/home/centos-6/rpmbuild/RPMS ~/el6/
             docker cp rpmbuild_webrepo_1:/home/centos-7/rpmbuild/RPMS ~/el7/
             sudo chown -R centos:centos ~/el6/RPMS ~/el7/RPMS
+      - save_cache:
+          key: rpm-cache-v7-{{ checksum "requirements.txt" }}-{{ checksum "SPECS/php7-pecl-memcached.spec" }}
+          paths:
+            - ~/el6/RPMS
+            - ~/el7/RPMS
       - run:
           name: Upload RPM packages into Bintray
           command: |
