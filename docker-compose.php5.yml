@@ -26,6 +26,7 @@ services:
       - rpm7:/home/centos/rpmbuild/RPMS
     build:
       context: .
+      dockerfile: Dockerfile.php-5
       args:
         image: memcached-base-php5
     image: aursu/peclbuild:7-memcached-php5
@@ -35,6 +36,7 @@ services:
       - rpm6:/home/centos/rpmbuild/RPMS
     build:
       context: .
+      dockerfile: Dockerfile.php-5
       args:
         centos: 6
         image: memcached-base-php5
