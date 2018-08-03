@@ -48,7 +48,7 @@ jobs:
           no_output_timeout: 2h
       - restore_cache:
           keys:
-            - rpm-cache-v7-{{ checksum "requirements.txt" }}-{{ checksum "SPECS/php-pecl-memcached.spec" }}
+            - rpm-cache-v7-{{ checksum "requirements.txt" }}-{{ checksum "SPECS/php7-pecl-memcached.spec" }}
             - rpm-cache-v7-{{ checksum "requirements.txt" }}-
             - rpm-cache-v7-
       - run:
@@ -135,7 +135,7 @@ jobs:
           name: Build RPM packages
           command: docker-compose up
       - save_cache:
-          key: rpm-cache-v7-{{ checksum "requirements.txt" }}-{{ checksum "SPECS/php-pecl-memcached.spec" }}
+          key: rpm-cache-v7-{{ checksum "requirements.txt" }}-{{ checksum "SPECS/php7-pecl-memcached.spec" }}
           paths:
             - ~/el6/RPMS
             - ~/el7/RPMS
