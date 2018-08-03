@@ -180,7 +180,7 @@ jobs:
     environment:
       LIBMEMC_VERSION: 1.0.18-10
       IGBINARY_VERSION: 2.0.7-1
-      MSGPACK_VERSION: 0.5.7-3
+      MSGPACK_VERSION: 0.5.7-4
       BINTRAY_REPO: php5custom
       PACKAGE_VCS_URL: https://github.com/aursu/rpmbuild-php-memcached
     steps:
