@@ -8,6 +8,7 @@ RUN yum -y --enablerepo custom install \
         fastlz-devel \
         libevent-devel \
         libmemcached-devel \
+        memcached \
         php-pecl-igbinary-devel \
         php-pecl-msgpack-devel \
         zlib-devel \

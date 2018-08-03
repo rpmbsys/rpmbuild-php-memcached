@@ -16,7 +16,7 @@
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      3.0.4
-Release:      2%{?dist}
+Release:      3%{?dist}
 License:      PHP
 Group:        Development/Languages
 URL:          http://pecl.php.net/package/%{pecl_name}
@@ -30,7 +30,11 @@ BuildRequires: php-pecl-igbinary-devel
 %ifnarch ppc64
 BuildRequires: php-pecl-msgpack-devel
 %endif
-BuildRequires: libevent-devel  > 2
+%if 0%{?rhel} >= 7
+BuildRequires: libevent-devel
+%else
+BuildRequires: libevent2-devel
+%endif
 BuildRequires: libmemcached-devel > 1.0.16
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
@@ -66,13 +70,13 @@ This extension uses libmemcached library to provide API for communicating
 with memcached servers.
 
 memcached is a high-performance, distributed memory object caching system,
-generic in nature, but intended for use in speeding up dynamic web 
+generic in nature, but intended for use in speeding up dynamic web
 applications by alleviating database load.
 
-It also provides a session handler (memcached). 
+It also provides a session handler (memcached).
 
 
-%prep 
+%prep
 %setup -c -q
 mv %{pecl_name}-%{version}%{?prever} NTS
 
@@ -253,6 +257,9 @@ fi
 
 
 %changelog
+* Fri Aug 03 2018 Alexander Ursu <alexander.ursu@gmail.com> - 3.0.4-3
+- fixed libevent dependency for CentOS 6
+
 * Fri Jul 20 2018 Alexander Ursu <alexander.ursu@gmail.com> - 3.0.4-2
 - Build for CentOS
 
@@ -411,4 +418,3 @@ fi
 
 * Wed Apr 29 2009 Remi Collet <fedora@famillecollet.com> - 0.1.5-1
 - Initial RPM
-
