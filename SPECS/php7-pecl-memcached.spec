@@ -1,11 +1,14 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2017 Remi Collet
+# Copyright (c) 2009-2018 Remi Collet
 # License: CC-BY-SA
 # http://creativecommons.org/licenses/by-sa/4.0/
 #
 # Please, preserve the changelog entries
 #
+
+# we don't want -z defs linker flag
+%undefine _strict_symbol_defs_build
 
 %global with_zts    0%{!?_without_zts:%{?__ztsphp:1}}
 %global with_tests  0%{!?_without_tests:1}
@@ -15,14 +18,15 @@
 
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
-Version:      3.0.4
-Release:      3%{?dist}
+Version:      3.1.3
+Release:      1%{?dist}
 License:      PHP
 Group:        Development/Languages
 URL:          http://pecl.php.net/package/%{pecl_name}
 
 Source0:      http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 
+BuildRequires: gcc
 BuildRequires: php-devel >= 5.2.10
 BuildRequires: php-pear
 BuildRequires: php-json
@@ -257,6 +261,9 @@ fi
 
 
 %changelog
+* Wed Dec 26 2018 Remi Collet <remi@remirepo.net> - 3.1.3-1
+- Update to 3.1.3
+
 * Fri Aug 03 2018 Alexander Ursu <alexander.ursu@gmail.com> - 3.0.4-3
 - fixed libevent dependency for CentOS 6
 

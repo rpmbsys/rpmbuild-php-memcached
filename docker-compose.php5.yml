@@ -1,36 +1,13 @@
 version: "3.5"
 services:
-  centos7memcachedbuildbasephp5:
-    networks:
-      - buildnet
-    build:
-      context: .
-      dockerfile: Dockerfile.base
-      args:
-        image: build-php5
-      network: buildnet
-    image: aursu/peclbuild:7-memcached-base-php5
-  centos6memcachedbuildbasephp5:
-    networks:
-      - buildnet
-    build:
-      context: .
-      dockerfile: Dockerfile.6-base
-      args:
-        image: build-php5
-      network: buildnet
-    image: aursu/peclbuild:6-memcached-base-php5
-  centos7memcachedbuildphp5:
+  centos7redisphp5:
     volumes:
       - rpms:/home/centos/rpmbuild/SRPMS
       - rpm7:/home/centos/rpmbuild/RPMS
     build:
       context: .
       dockerfile: Dockerfile.php-5
-      args:
-        image: memcached-base-php5
-    image: aursu/peclbuild:7-memcached-php5
-  centos6memcachedbuildphp5:
+  centos6redisphp5:
     volumes:
       - rpms:/home/centos/rpmbuild/SRPMS
       - rpm6:/home/centos/rpmbuild/RPMS
@@ -39,13 +16,6 @@ services:
       dockerfile: Dockerfile.php-5
       args:
         centos: 6
-        image: memcached-base-php5
-    image: aursu/peclbuild:6-memcached-php5
-
-networks:
-  buildnet:
-    external: true
-    name: buildnet
 
 volumes:
   rpms:
