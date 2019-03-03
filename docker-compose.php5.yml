@@ -1,13 +1,13 @@
 version: "3.5"
 services:
-  centos7redisphp5:
+  centos7memcachedphp5:
     volumes:
       - rpms:/home/centos/rpmbuild/SRPMS
       - rpm7:/home/centos/rpmbuild/RPMS
     build:
       context: .
       dockerfile: Dockerfile.php-5
-  centos6redisphp5:
+  centos6memcachedphp5:
     volumes:
       - rpms:/home/centos/rpmbuild/SRPMS
       - rpm6:/home/centos/rpmbuild/RPMS

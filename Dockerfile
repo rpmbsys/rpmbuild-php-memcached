@@ -1,7 +1,16 @@
 ARG centos=7
-ARG image=memcached-base
+ARG image=php-msgpack-7.1
 
 FROM aursu/peclbuild:${centos}-${image}
+
+RUN yum -y --enablerepo=bintray-custom install \
+        cyrus-sasl-devel \
+        fastlz-devel \
+        libevent-devel \
+        libmemcached-devel \
+        memcached \
+        zlib-devel \
+    && yum clean all && rm -rf /var/cache/yum
 
 COPY SOURCES ${BUILD_TOPDIR}/SOURCES
 COPY SPECS ${BUILD_TOPDIR}/SPECS
