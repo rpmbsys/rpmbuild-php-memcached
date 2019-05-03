@@ -10,13 +10,14 @@
 # we don't want -z defs linker flag
 %undefine _strict_symbol_defs_build
 
+%global with_zts    0%{!?_without_zts:%{?__ztsphp:1}}
 %global with_tests  0%{!?_without_tests:1}
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
 %global ini_name    50-%{pecl_name}.ini
 
 Summary:      Extension to work with the Memcached caching daemon
-Name:         php7-pecl-memcached
+Name:         php-pecl-memcached
 Version:      3.1.3
 Release:      1%{?dist}
 License:      PHP
@@ -26,12 +27,12 @@ URL:          http://pecl.php.net/package/%{pecl_name}
 Source0:      http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 
 BuildRequires: gcc
-BuildRequires: php7-devel
-BuildRequires: php7-pear
+BuildRequires: php-devel >= 5.2.10
+BuildRequires: php-pear
 BuildRequires: php-json
-BuildRequires: php7-pecl-igbinary-devel
+BuildRequires: php-pecl-igbinary-devel
 %ifnarch ppc64
-BuildRequires: php7-pecl-msgpack-devel
+BuildRequires: php-pecl-msgpack-devel
 %endif
 %if 0%{?rhel} >= 7
 BuildRequires: libevent-devel
@@ -50,17 +51,15 @@ Requires(post): %{__pecl}
 Requires(postun): %{__pecl}
 
 Requires:     php-json%{?_isa}
-Requires:     php7-igbinary%{?_isa}
+Requires:     php-igbinary%{?_isa}
 Requires:     php(zend-abi) = %{php_zend_api}
 Requires:     php(api) = %{php_core_api}
 %ifnarch ppc64
-Requires:     php7-msgpack%{?_isa}
+Requires:     php-msgpack%{?_isa}
 %endif
 
 Provides:     php-%{pecl_name} = %{version}
-Provides:     php7-%{pecl_name} = %{version}
 Provides:     php-%{pecl_name}%{?_isa} = %{version}
-Provides:     php7-%{pecl_name}%{?_isa} = %{version}
 Provides:     php-pecl(%{pecl_name}) = %{version}
 Provides:     php-pecl(%{pecl_name})%{?_isa} = %{version}
 
@@ -127,6 +126,11 @@ EOF
 # default options with description from upstream
 cat NTS/memcached.ini >>%{ini_name}
 
+%if %{with_zts}
+cp -r NTS ZTS
+%endif
+
+
 %build
 peclconf() {
 %configure --enable-memcached-igbinary \
@@ -140,9 +144,16 @@ peclconf() {
            --with-php-config=$1
 }
 cd NTS
-%{_bindir}/phpize7
-peclconf %{_bindir}/php7-config
+%{_bindir}/phpize
+peclconf %{_bindir}/php-config
 make %{?_smp_mflags}
+
+%if %{with_zts}
+cd ../ZTS
+%{_bindir}/zts-phpize
+peclconf %{_bindir}/zts-php-config
+make %{?_smp_mflags}
+%endif
 
 %install
 # Install the NTS extension
@@ -154,6 +165,12 @@ install -D -m 644 %{ini_name} %{buildroot}%{php_inidir}/%{ini_name}
 
 # Install XML package description
 install -D -m 644 package.xml %{buildroot}%{pecl_xmldir}/%{name}.xml
+
+# Install the ZTS extension
+%if %{with_zts}
+make install -C ZTS INSTALL_ROOT=%{buildroot}
+install -D -m 644 %{ini_name} %{buildroot}%{php_ztsinidir}/%{ini_name}
+%endif
 
 # Documentation
 cd NTS
@@ -172,6 +189,13 @@ OPT="-n"
     -d extension=%{buildroot}%{php_extdir}/%{pecl_name}.so \
     --modules | grep %{pecl_name}
 
+%if %{with_zts}
+: Minimal load test for ZTS extension
+%{__ztsphp} $OPT \
+    -d extension=%{buildroot}%{php_ztsextdir}/%{pecl_name}.so \
+    --modules | grep %{pecl_name}
+%endif
+
 %if %{with_tests}
 # XFAIL and very slow so no value
 rm ?TS/tests/expire.phpt
@@ -180,11 +204,7 @@ ret=0
 
 : Launch the Memcached service
 port=$(%{__php} -r 'echo 10000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + PHP_INT_SIZE;')
-user=$(whoami)
-if [ $(id) -eq 0 ]; then
-   user=memcached
-fi
-memcached -p $port -U $port      -d -P $PWD/memcached.pid -u $user
+memcached -p $port -U $port      -d -P $PWD/memcached.pid
 sed -e "s/11211/$port/" -i ?TS/tests/*
 
 : Run the upstream test Suite for NTS extension
@@ -196,6 +216,18 @@ NO_INTERACTION=1 \
 REPORT_EXIT_STATUS=1 \
 %{__php} -n run-tests.php --show-diff || ret=1
 popd
+
+%if %{with_zts}
+: Run the upstream test Suite for ZTS extension
+pushd ZTS
+rm tests/flush_buffers.phpt tests/touch_binary.phpt
+TEST_PHP_EXECUTABLE=%{__ztsphp} \
+TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
+NO_INTERACTION=1 \
+REPORT_EXIT_STATUS=1 \
+%{__ztsphp} -n run-tests.php --show-diff || ret=1
+popd
+%endif
 
 # Cleanup
 if [ -f memcached.pid ]; then
@@ -221,6 +253,12 @@ fi
 
 %config(noreplace) %{php_inidir}/%{ini_name}
 %{php_extdir}/%{pecl_name}.so
+
+%if %{with_zts}
+%config(noreplace) %{php_ztsinidir}/%{ini_name}
+%{php_ztsextdir}/%{pecl_name}.so
+%endif
+
 
 %changelog
 * Wed Dec 26 2018 Remi Collet <remi@remirepo.net> - 3.1.3-1
