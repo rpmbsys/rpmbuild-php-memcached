@@ -73,7 +73,7 @@ jobs:
 
 workflows:
   version: 2
-  redisbuild:
+  memcachedbuild:
     jobs:
-      - build71
       - build73
+      - build71
