@@ -38,7 +38,7 @@ BuildRequires: libevent-devel
 %else
 BuildRequires: libevent2-devel
 %endif
-BuildRequires: libmemcached-devel > 1.0.18
+BuildRequires: libmemcached-devel >= 1.0.18
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
 BuildRequires: fastlz-devel
