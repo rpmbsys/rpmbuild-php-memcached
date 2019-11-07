@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build71:
-     machine:
+    machine:
       image: ubuntu-1604:201903-01
     environment:
       BINTRAY_REPO: php71custom
@@ -36,7 +36,7 @@ jobs:
               -e BINTRAY_REPO=$BINTRAY_REPO \
               -e PACKAGE_VCS_URL=$PACKAGE_VCS_URL centos8bintray
   build73:
-     machine:
+    machine:
       image: ubuntu-1604:201903-01
     environment:
       BINTRAY_REPO: php73custom
