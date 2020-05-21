@@ -17,7 +17,7 @@
 
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php7-pecl-memcached
-Version:      3.1.4
+Version:      3.1.5
 Release:      1%{?dist}
 License:      PHP
 Group:        Development/Languages
@@ -223,6 +223,9 @@ fi
 %{php_extdir}/%{pecl_name}.so
 
 %changelog
+* Wed Dec  4 2019 Remi Collet <remi@remirepo.net> - 3.1.5-1
+- Update to 3.1.5
+
 * Mon Oct  7 2019 Remi Collet <remi@remirepo.net> - 3.1.4-1
 - Update to 3.1.4
 
