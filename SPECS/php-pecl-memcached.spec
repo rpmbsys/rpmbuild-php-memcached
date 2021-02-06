@@ -19,12 +19,21 @@
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      3.1.5
-Release:      1%{?dist}
+Release:      3%{?dist}
 License:      PHP
 Group:        Development/Languages
 URL:          http://pecl.php.net/package/%{pecl_name}
 
 Source0:      http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
+
+Patch0:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/461.patch
+Patch1:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/463.patch
+Patch2:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/465.patch
+Patch3:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/467.patch
+Patch4:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/468.patch
+Patch5:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/469.patch
+Patch6:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/472.patch
+Patch7:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/473.patch
 
 BuildRequires: gcc
 BuildRequires: php-devel >= 5.2.10
@@ -93,6 +102,17 @@ sed -e 's/role="test"/role="src"/' \
 rm -r NTS/fastlz
 
 cd NTS
+
+%if "%{php_version}" > "8.0"
+%patch0 -p1 -b .pr461
+%patch1 -p1 -b .pr463
+%patch2 -p1 -b .pr465
+%patch3 -p1 -b .pr467
+%patch4 -p1 -b .pr468
+%patch5 -p1 -b .pr469
+%patch6 -p1 -b .pr472
+%patch7 -p1 -b .pr473
+%endif
 
 # Chech version as upstream often forget to update this
 extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
@@ -261,6 +281,20 @@ fi
 
 
 %changelog
+* Thu Oct  8 2020 Remi Collet <remi@remirepo.net> - 3.1.5-3
+- more patches for PHP 8 from
+  https://github.com/php-memcached-dev/php-memcached/pull/465
+  https://github.com/php-memcached-dev/php-memcached/pull/467
+  https://github.com/php-memcached-dev/php-memcached/pull/468
+  https://github.com/php-memcached-dev/php-memcached/pull/469
+  https://github.com/php-memcached-dev/php-memcached/pull/472
+  https://github.com/php-memcached-dev/php-memcached/pull/473
+
+* Thu Oct  8 2020 Remi Collet <remi@remirepo.net> - 3.1.5-2
+- add patches for PHP 8 from
+  https://github.com/php-memcached-dev/php-memcached/pull/461
+  https://github.com/php-memcached-dev/php-memcached/pull/463
+
 * Wed Dec  4 2019 Remi Collet <remi@remirepo.net> - 3.1.5-1
 - Update to 3.1.5
 
