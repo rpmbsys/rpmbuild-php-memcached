@@ -9,36 +9,34 @@ workflows:
       - docker-rpmbuild/build:
           name: centos7memcached
           build_service: centos7memcached
-          bintray_uploader: centos7bintray
-      - docker-rpmbuild/build:
-          name: centos7memcachedrel
-          build_service: centos7memcachedrel
+          bintray-repo: php74custom
           bintray_uploader: centos7bintray
       - docker-rpmbuild/build:
           name: centos8memcached
           build_service: centos8memcached
-          bintray_uploader: centos8bintray
-      - docker-rpmbuild/build:
-          name: centos8memcachedrel
-          build_service: centos8memcachedrel
+          bintray-repo: php74custom
           bintray_uploader: centos8bintray
       - docker-rpmbuild/build:
           name: centos7memcachedphp73
           build_file: docker-compose.php73.yml
           build_service: centos7memcachedphp73
+          bintray-repo: php73custom
           bintray_uploader: centos7bintray
       - docker-rpmbuild/build:
           name: centos8memcachedphp73
           build_file: docker-compose.php73.yml
           build_service: centos8memcachedphp73
+          bintray-repo: php73custom
           bintray_uploader: centos8bintray
       - docker-rpmbuild/build:
-          name: centos7memcachedphp74
-          build_file: docker-compose.php74.yml
-          build_service: centos7memcachedphp74
+          name: centos7memcachedphp80
+          build_file: docker-compose.php80.yml
+          build_service: centos7memcachedphp80
+          bintray-repo: php8custom
           bintray_uploader: centos7bintray
       - docker-rpmbuild/build:
-          name: centos8memcachedphp74
-          build_file: docker-compose.php74.yml
-          build_service: centos8memcachedphp74
+          name: centos8memcachedphp80
+          build_file: docker-compose.php80.yml
+          build_service: centos8memcachedphp80
+          bintray-repo: php8custom
           bintray_uploader: centos8bintray
