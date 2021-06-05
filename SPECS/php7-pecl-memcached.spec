@@ -10,6 +10,9 @@
 # we don't want -z defs linker flag
 %undefine _strict_symbol_defs_build
 
+%define _debugsource_template %{nil}
+%define debug_package %{nil}
+
 %global with_tests  0%{!?_without_tests:1}
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
