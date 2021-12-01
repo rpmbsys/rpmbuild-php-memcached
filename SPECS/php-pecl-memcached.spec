@@ -1,6 +1,6 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2018 Remi Collet
+# Copyright (c) 2009-2021 Remi Collet
 # License: CC-BY-SA
 # http://creativecommons.org/licenses/by-sa/4.0/
 #
@@ -22,12 +22,12 @@
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      3.1.5
-Release:      3%{?dist}
+Release:      8%{?dist}
 License:      PHP
 Group:        Development/Languages
-URL:          http://pecl.php.net/package/%{pecl_name}
+URL:          https://pecl.php.net/package/%{pecl_name}
 
-Source0:      http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
+Source0:      https://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 
 Patch0:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/461.patch
 Patch1:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/463.patch
@@ -37,9 +37,13 @@ Patch4:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php
 Patch5:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/469.patch
 Patch6:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/472.patch
 Patch7:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/473.patch
+Patch8:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/486.patch
+Patch9:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/487.patch
+Patch10:      https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/488.patch
 
+BuildRequires: make
 BuildRequires: gcc
-BuildRequires: php-devel >= 5.2.10
+BuildRequires: php-devel >= 7
 BuildRequires: php-pear
 BuildRequires: php-json
 BuildRequires: php-pecl-igbinary-devel
@@ -115,6 +119,9 @@ cd NTS
 %patch5 -p1 -b .pr469
 %patch6 -p1 -b .pr472
 %patch7 -p1 -b .pr473
+%patch8 -p1 -b .pr486
+%patch9 -p1 -b .pr487
+%patch10 -p1 -b .pr488
 %endif
 
 # Chech version as upstream often forget to update this
@@ -237,7 +244,7 @@ TEST_PHP_EXECUTABLE=%{__php} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
 REPORT_EXIT_STATUS=1 \
-%{__php} -n run-tests.php --show-diff || ret=1
+%{__php} -n run-tests.php -x --show-diff || ret=1
 popd
 
 %if %{with_zts}
@@ -248,13 +255,14 @@ TEST_PHP_EXECUTABLE=%{__ztsphp} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
 REPORT_EXIT_STATUS=1 \
-%{__ztsphp} -n run-tests.php --show-diff || ret=1
+%{__ztsphp} -n run-tests.php -x --show-diff || ret=1
 popd
 %endif
 
 # Cleanup
 if [ -f memcached.pid ]; then
    kill $(cat memcached.pid)
+   sleep 1
 fi
 
 exit $ret
@@ -284,6 +292,13 @@ fi
 
 
 %changelog
+* Thu Oct 28 2021 Remi Collet <remi@remirepo.net> - 3.1.5-8
+- add patch got PHP 8.1 from
+  https://github.com/php-memcached-dev/php-memcached/pull/486
+  https://github.com/php-memcached-dev/php-memcached/pull/487
+- add patch to report about libmemcached-awesome from
+  https://github.com/php-memcached-dev/php-memcached/pull/488
+
 * Thu Oct  8 2020 Remi Collet <remi@remirepo.net> - 3.1.5-3
 - more patches for PHP 8 from
   https://github.com/php-memcached-dev/php-memcached/pull/465

@@ -1,0 +1,105 @@
+From b473c220a367360e821c23434456d4011909ba8d Mon Sep 17 00:00:00 2001
+From: Remi Collet <remi@remirepo.net>
+Date: Wed, 9 Jun 2021 14:29:34 +0200
+Subject: [PATCH 1/2] fix parameter count
+
+---
+ php_memcached.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/php_memcached.c b/php_memcached.c
+index 1e218a00..ba2459c0 100644
+--- a/php_memcached.c
++++ b/php_memcached.c
+@@ -1875,16 +1875,16 @@ static void php_memc_setMulti_impl(INTERNAL_FUNCTION_PARAMETERS, zend_bool by_ke
+ 	MEMC_METHOD_INIT_VARS;
+ 
+ 	if (by_key) {
+-		/* "Sa|ll" */
+-		ZEND_PARSE_PARAMETERS_START(2, 4)
++		/* "Sa|l" */
++		ZEND_PARSE_PARAMETERS_START(2, 3)
+ 		        Z_PARAM_STR(server_key)
+ 		        Z_PARAM_ARRAY(entries)
+ 		        Z_PARAM_OPTIONAL
+ 		        Z_PARAM_LONG(expiration)
+ 		ZEND_PARSE_PARAMETERS_END();
+ 	} else {
+-		/* "a|ll" */
+-		ZEND_PARSE_PARAMETERS_START(1, 3)
++		/* "a|l" */
++		ZEND_PARSE_PARAMETERS_START(1, 2)
+ 		        Z_PARAM_ARRAY(entries)
+ 		        Z_PARAM_OPTIONAL
+ 		        Z_PARAM_LONG(expiration)
+@@ -2090,7 +2090,7 @@ static void php_memc_cas_impl(INTERNAL_FUNCTION_PARAMETERS, zend_bool by_key)
+ 
+ 	if (by_key) {
+ 		/* "zSSz|ll" */
+-		ZEND_PARSE_PARAMETERS_START(4, 6)
++		ZEND_PARSE_PARAMETERS_START(4, 4)
+ 		        Z_PARAM_ZVAL(zv_cas)
+ 		        Z_PARAM_STR(server_key)
+ 		        Z_PARAM_STR(key)
+@@ -2100,7 +2100,7 @@ static void php_memc_cas_impl(INTERNAL_FUNCTION_PARAMETERS, zend_bool by_key)
+ 		ZEND_PARSE_PARAMETERS_END();
+ 	} else {
+ 		/* "zSz|ll" */
+-		ZEND_PARSE_PARAMETERS_START(3, 5)
++		ZEND_PARSE_PARAMETERS_START(3, 4)
+ 		        Z_PARAM_ZVAL(zv_cas)
+ 		        Z_PARAM_STR(key)
+ 		        Z_PARAM_ZVAL(value)
+
+From 6971eea88a6b9c0797d70c0dd4b0491acbb825eb Mon Sep 17 00:00:00 2001
+From: Remi Collet <remi@remirepo.net>
+Date: Wed, 9 Jun 2021 14:30:12 +0200
+Subject: [PATCH 2/2] fix test for PHP 8.1
+
+---
+ tests/undefined_set.phpt | 21 ++++++++-------------
+ 1 file changed, 8 insertions(+), 13 deletions(-)
+
+diff --git a/tests/undefined_set.phpt b/tests/undefined_set.phpt
+index caeda19d..581c9406 100644
+--- a/tests/undefined_set.phpt
++++ b/tests/undefined_set.phpt
+@@ -10,30 +10,25 @@ $m = memc_get_instance ();
+ $key = 'foobarbazDEADC0DE';
+ $value = array('foo' => 'bar');
+ 
+-$rv = $m->set($no_key, $value, 360);
++// silent to hide:
++// Warning: Undefined variable
++// Deprecated: Memcached::set(): Passing null to parameter (PHP 8.1)
++
++$rv = @$m->set($no_key, $value, 360);
+ var_dump($rv);
+ 
+ 
+-$rv = $m->set($key, $no_value, 360);
++$rv = @$m->set($key, $no_value, 360);
+ var_dump($rv);
+ 
+-$rv = $m->set($no_key, $no_value, 360);
++$rv = @$m->set($no_key, $no_value, 360);
+ var_dump($rv);
+ 
+-$rv = $m->set($key, $value, $no_time);
++$rv = @$m->set($key, $value, $no_time);
+ var_dump($rv);
+ ?>
+ --EXPECTF--
+-%s: Undefined variable%sno_key in %s
+ bool(false)
+-
+-%s: Undefined variable%sno_value in %s
+ bool(true)
+-
+-%s: Undefined variable%sno_key in %s
+-
+-%s: Undefined variable%sno_value in %s
+ bool(false)
+-
+-%s: Undefined variable%sno_time in %s
+ bool(true)
