@@ -1,6 +1,6 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2021 Remi Collet
+# Copyright (c) 2009-2022 Remi Collet
 # License: CC-BY-SA
 # http://creativecommons.org/licenses/by-sa/4.0/
 #
@@ -21,25 +21,15 @@
 
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
-Version:      3.1.5
-Release:      8%{?dist}
+Version:      3.2.0
+Release:      3%{?dist}
 License:      PHP
-Group:        Development/Languages
 URL:          https://pecl.php.net/package/%{pecl_name}
 
 Source0:      https://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 
-Patch0:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/461.patch
-Patch1:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/463.patch
-Patch2:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/465.patch
-Patch3:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/467.patch
-Patch4:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/468.patch
-Patch5:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/469.patch
-Patch6:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/472.patch
-Patch7:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/473.patch
-Patch8:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/486.patch
-Patch9:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/487.patch
-Patch10:      https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/488.patch
+# upstream patch for PHP 8.2
+Patch0:        %{pecl_name}-upstream.patch
 
 BuildRequires: make
 BuildRequires: gcc
@@ -63,8 +53,10 @@ BuildRequires: fastlz-devel
 BuildRequires: memcached
 %endif
 
+%if 0%{?fedora} < 24 && 0%{?rhel} < 8
 Requires(post): %{__pecl}
 Requires(postun): %{__pecl}
+%endif
 
 Requires:     php-json%{?_isa}
 Requires:     php-igbinary%{?_isa}
@@ -98,7 +90,7 @@ It also provides a session handler (memcached).
 
 %prep
 %setup -c -q
-mv %{pecl_name}-%{version}%{?prever} NTS
+mv %{pecl_name}-%{version} NTS
 
 # Don't install/register tests
 sed -e 's/role="test"/role="src"/' \
@@ -109,26 +101,13 @@ sed -e 's/role="test"/role="src"/' \
 rm -r NTS/fastlz
 
 cd NTS
-
-%if "%{php_version}" > "8.0"
-%patch0 -p1 -b .pr461
-%patch1 -p1 -b .pr463
-%patch2 -p1 -b .pr465
-%patch3 -p1 -b .pr467
-%patch4 -p1 -b .pr468
-%patch5 -p1 -b .pr469
-%patch6 -p1 -b .pr472
-%patch7 -p1 -b .pr473
-%patch8 -p1 -b .pr486
-%patch9 -p1 -b .pr487
-%patch10 -p1 -b .pr488
-%endif
+%patch0 -p1
 
 # Chech version as upstream often forget to update this
 extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
-if test "x${extver}" != "x%{version}%{?gh_date:-dev}%{?intver}"; then
-   : Error: Upstream HTTP version is now ${extver}, expecting %{version}.
-   : Update the pdover macro and rebuild.
+if test "x${extver}" != "x%{version}"; then
+   : Error: Upstream extension version is ${extver}, expecting %{version}.
+   : Update the macro and rebuild.
    exit 1
 fi
 cd ..
@@ -268,6 +247,7 @@ fi
 exit $ret
 %endif
 
+%if 0%{?fedora} < 24 && 0%{?rhel} < 8
 %post
 %{pecl_install} %{pecl_xmldir}/%{name}.xml >/dev/null || :
 
@@ -275,6 +255,7 @@ exit $ret
 if [ $1 -eq 0 ] ; then
     %{pecl_uninstall} %{pecl_name} >/dev/null || :
 fi
+%endif
 
 %files
 %{!?_licensedir:%global license %%doc}
@@ -292,15 +273,38 @@ fi
 
 
 %changelog
+* Wed Oct 05 2022 Remi Collet <remi@remirepo.net> - 3.2.0-3
+- rebuild for https://fedoraproject.org/wiki/Changes/php82
+- add upstream patches for PHP 8.2
+
+* Fri Jul 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
+* Thu Mar 24 2022 Remi Collet <remi@remirepo.net> - 3.2.0-1
+- update to 3.2.0
+
+* Mon Mar  7 2022 Remi Collet <remi@remirepo.net> - 3.2.0~rc1-1
+- update to 3.2.0RC1
+
+* Fri Jan 21 2022 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.5-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
+
 * Thu Oct 28 2021 Remi Collet <remi@remirepo.net> - 3.1.5-8
+- rebuild for https://fedoraproject.org/wiki/Changes/php81
 - add patch got PHP 8.1 from
   https://github.com/php-memcached-dev/php-memcached/pull/486
   https://github.com/php-memcached-dev/php-memcached/pull/487
 - add patch to report about libmemcached-awesome from
   https://github.com/php-memcached-dev/php-memcached/pull/488
 
-* Thu Oct  8 2020 Remi Collet <remi@remirepo.net> - 3.1.5-3
-- more patches for PHP 8 from
+* Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.5-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
+
+* Thu Mar  4 2021 Remi Collet <remi@remirepo.net> - 3.1.5-6
+- rebuild for https://fedoraproject.org/wiki/Changes/php80
+- add patches for PHP 8 from
+  https://github.com/php-memcached-dev/php-memcached/pull/461
+  https://github.com/php-memcached-dev/php-memcached/pull/463
   https://github.com/php-memcached-dev/php-memcached/pull/465
   https://github.com/php-memcached-dev/php-memcached/pull/467
   https://github.com/php-memcached-dev/php-memcached/pull/468
@@ -308,10 +312,17 @@ fi
   https://github.com/php-memcached-dev/php-memcached/pull/472
   https://github.com/php-memcached-dev/php-memcached/pull/473
 
-* Thu Oct  8 2020 Remi Collet <remi@remirepo.net> - 3.1.5-2
-- add patches for PHP 8 from
-  https://github.com/php-memcached-dev/php-memcached/pull/461
-  https://github.com/php-memcached-dev/php-memcached/pull/463
+* Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.5-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Tue Sep 15 2020 Remi Collet <remi@remirepo.net> - 3.1.5-4
+- rebuild for new libevent
+
+* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.5-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
+* Thu Jan 30 2020 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.5-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
 * Wed Dec  4 2019 Remi Collet <remi@remirepo.net> - 3.1.5-1
 - Update to 3.1.5
@@ -319,17 +330,42 @@ fi
 * Mon Oct  7 2019 Remi Collet <remi@remirepo.net> - 3.1.4-1
 - Update to 3.1.4
 
+* Thu Oct 03 2019 Remi Collet <remi@remirepo.net> - 3.1.3-4
+- rebuild for https://fedoraproject.org/wiki/Changes/php74
+
+* Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.3-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
+* Sat Feb 02 2019 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
+
 * Wed Dec 26 2018 Remi Collet <remi@remirepo.net> - 3.1.3-1
 - Update to 3.1.3
 
-* Fri Aug 03 2018 Alexander Ursu <alexander.ursu@gmail.com> - 3.0.4-3
-- fixed libevent dependency for CentOS 6
+* Fri Dec 21 2018 Remi Collet <remi@remirepo.net> - 3.1.1-1
+- Update to 3.1.1
 
-* Fri Jul 20 2018 Alexander Ursu <alexander.ursu@gmail.com> - 3.0.4-2
-- Build for CentOS
+* Thu Oct 11 2018 Remi Collet <remi@remirepo.net> - 3.0.4-6
+- Rebuild for https://fedoraproject.org/wiki/Changes/php73
+- add upstream patch for PHP 7.3
+
+* Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.4-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
+* Fri Mar  2 2018 Remi Collet <remi@remirepo.net> - 3.0.4-4
+- rebuild for libevent
+
+* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.4-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Mon Jan 29 2018 Remi Collet <remi@remirepo.net> - 3.0.4-2
+- undefine _strict_symbol_defs_build
 
 * Tue Nov 21 2017 Remi Collet <remi@remirepo.net> - 3.0.4-1
 - Update to 3.0.4
+
+* Tue Oct 03 2017 Remi Collet <remi@fedoraproject.org> - 3.0.3-4
+- rebuild for https://fedoraproject.org/wiki/Changes/php72
 
 * Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.3-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
