@@ -7,6 +7,8 @@ services:
       context: .
       args:
         os: $RL8
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
   stream9build:
     volumes:
       - rpm9stream:/home/centos/rpmbuild/RPMS
