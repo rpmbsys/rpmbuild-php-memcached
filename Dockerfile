@@ -3,17 +3,17 @@ ARG image=php-msgpack-7.4
 
 FROM aursu/peclbuild:${os}-${image}
 
-RUN yum -y install \
+RUN dnf -y install \
         cyrus-sasl-devel \
         fastlz-devel \
         libevent-devel \
         memcached \
         zlib-devel \
-    && yum clean all && rm -rf /var/cache/yum
+    && dnf clean all && rm -rf /var/cache/dnf
 
-RUN yum -y --enablerepo=bintray-custom install \
+RUN dnf -y --enablerepo=bintray-custom install \
         libmemcached-devel \
-    && yum clean all && rm -rf /var/cache/yum
+    && dnf clean all && rm -rf /var/cache/yum
 
 COPY SOURCES ${BUILD_TOPDIR}/SOURCES
 COPY SPECS ${BUILD_TOPDIR}/SPECS
