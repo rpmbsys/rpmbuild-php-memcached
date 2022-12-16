@@ -7,9 +7,7 @@ env:
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
   OS7: 7.9.2009
-  OS8: stream8
   OS7TAG: 7.9.2009
-  OS8TAG: stream8
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,21 +19,11 @@ jobs:
             build: centos7memcached
             uploader: centos7bintray
             repo_path: ""
-          - compose-file: docker-compose.yml
-            repo: php74custom
-            build: stream8memcached
-            uploader: stream8bintray
-            repo_path: centos/8-stream
           - compose-file: docker-compose.php81.yml
             repo: php81custom
             build: centos7memcachedphp81
             uploader: centos7bintray
             repo_path: ""
-          - compose-file: docker-compose.php81.yml
-            repo: php81custom
-            build: stream8memcachedphp81
-            uploader: stream8bintray
-            repo_path: centos/8-stream
     env:
       BUILD_COMPOSE_FILE: ${{ matrix.compose-file }}
       BINTRAY_REPO: ${{ matrix.repo }}

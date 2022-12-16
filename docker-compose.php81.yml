@@ -1,6 +1,6 @@
 version: "3"
 services:
-  centos7memcachedphp81:
+  centos7build:
     volumes:
       - rpm7:/home/centos/rpmbuild/RPMS
     build:
@@ -8,17 +8,8 @@ services:
       args:
         centos: $OS7
         image: php-msgpack-8.1
-  stream8memcachedphp81:
-    volumes:
-      - rpm8stream:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      args:
-        centos: $OS8
-        image: php-msgpack-8.1
+
 
 volumes:
   rpm7:
     name: rpm7
-  rpm8stream:
-    name: rpm8stream
