@@ -1,14 +1,5 @@
 version: "3"
 services:
-  centos7build:
-    volumes:
-      - rpm7:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      dockerfile: Dockerfile.el7
-      args:
-        centos: $OS7
-        image: php-msgpack-8.1
   rocky8build:
     volumes:
       - rpm8rocky:/home/centos/rpmbuild/RPMS
@@ -27,8 +18,6 @@ services:
         image: php-msgpack-8.1
 
 volumes:
-  rpm7:
-    name: rpm7
   rpm8rocky:
     name: rpm8rocky
   rpm9stream:

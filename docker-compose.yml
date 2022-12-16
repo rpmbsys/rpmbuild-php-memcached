@@ -1,13 +1,5 @@
 version: "3"
 services:
-  centos7build:
-    volumes:
-      - rpm7:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      dockerfile: Dockerfile.el7
-      args:
-        centos: $OS7
   rocky8build:
     volumes:
       - rpm8rocky:/home/centos/rpmbuild/RPMS
@@ -24,8 +16,6 @@ services:
         os: $OS9
 
 volumes:
-  rpm7:
-    name: rpm7
   rpm8rocky:
     name: rpm8rocky
   rpm9stream:

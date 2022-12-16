@@ -56,11 +56,6 @@ BuildRequires: memcached
 BuildRequires: pkgconfig(libevent) >= 2.0.2
 BuildRequires: pkgconfig(libmemcached) >= 1.1
 
-%if 0%{?fedora} < 24 && 0%{?rhel} < 8
-Requires(post): %{__pecl}
-Requires(postun): %{__pecl}
-%endif
-
 Requires:     php-json%{?_isa}
 Requires:     php(zend-abi) = %{php_zend_api}
 Requires:     php(api) = %{php_core_api}
@@ -77,11 +72,7 @@ Provides:     php-%{pecl_name}%{?_isa} = %{version}
 Provides:     php-pecl(%{pecl_name}) = %{version}
 Provides:     php-pecl(%{pecl_name})%{?_isa} = %{version}
 
-%if 0%{?fedora} < 20 && 0%{?rhel} < 7
-# Filter private shared
-%{?filter_provides_in: %filter_provides_in %{_libdir}/.*\.so$}
 %{?filter_setup}
-%endif
 
 %description
 This extension uses libmemcached library to provide API for communicating
@@ -267,16 +258,6 @@ if [ -f memcached.pid ]; then
 fi
 
 exit $ret
-%endif
-
-%if 0%{?fedora} < 24 && 0%{?rhel} < 8
-%post
-%{pecl_install} %{pecl_xmldir}/%{name}.xml >/dev/null || :
-
-%postun
-if [ $1 -eq 0 ] ; then
-    %{pecl_uninstall} %{pecl_name} >/dev/null || :
-fi
 %endif
 
 %files
