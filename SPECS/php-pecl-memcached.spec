@@ -13,8 +13,12 @@
 %define _debugsource_template %{nil}
 %define debug_package %{nil}
 
+%bcond_without fastlz
+%bcond_without igbinary
+%bcond_without msgpack
+%bcond_without tests
+
 %global with_zts    0%{!?_without_zts:%{?__ztsphp:1}}
-%global with_tests  0%{!?_without_tests:1}
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
 %global ini_name    50-%{pecl_name}.ini
@@ -22,7 +26,7 @@
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      3.2.0
-Release:      3%{?dist}
+Release:      5%{?dist}
 License:      PHP
 URL:          https://pecl.php.net/package/%{pecl_name}
 
@@ -31,27 +35,26 @@ Source0:      https://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 # upstream patch for PHP 8.2
 Patch0:        %{pecl_name}-upstream.patch
 
-BuildRequires: make
 BuildRequires: gcc
 BuildRequires: php-devel >= 7
 BuildRequires: php-pear
 BuildRequires: php-json
+%if %{with igbinary}
 BuildRequires: php-pecl-igbinary-devel
-%ifnarch ppc64
+%endif
+%if %{with msgpack}
 BuildRequires: php-pecl-msgpack-devel
 %endif
-%if 0%{?rhel} >= 7
-BuildRequires: libevent-devel
-%else
-BuildRequires: libevent2-devel
-%endif
-BuildRequires: libmemcached-devel >= 1.0.18
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
+%if %{with fastlz}
 BuildRequires: fastlz-devel
-%if %{with_tests}
+%endif
+%if %{with tests}
 BuildRequires: memcached
 %endif
+BuildRequires: pkgconfig(libevent) >= 2.0.2
+BuildRequires: pkgconfig(libmemcached) >= 1.1
 
 %if 0%{?fedora} < 24 && 0%{?rhel} < 8
 Requires(post): %{__pecl}
@@ -59,11 +62,14 @@ Requires(postun): %{__pecl}
 %endif
 
 Requires:     php-json%{?_isa}
-Requires:     php-igbinary%{?_isa}
 Requires:     php(zend-abi) = %{php_zend_api}
 Requires:     php(api) = %{php_core_api}
-%ifnarch ppc64
-Requires:     php-msgpack%{?_isa}
+%if %{with igbinary}
+Requires:     php-igbinary%{?_isa}
+%endif
+
+%if %{with msgpack}
+Requires:    php-msgpack%{?_isa}
 %endif
 
 Provides:     php-%{pecl_name} = %{version}
@@ -94,14 +100,16 @@ mv %{pecl_name}-%{version} NTS
 
 # Don't install/register tests
 sed -e 's/role="test"/role="src"/' \
-    -e '/LICENSE/s/role="doc"/role="src"/' \
-    -e '/name=.fastlz/d' \
+    %{?_licensedir:-e '/LICENSE/s/role="doc"/role="src"/' } \
     -i package.xml
-
-rm -r NTS/fastlz
 
 cd NTS
 %patch0 -p1
+
+%if %{with fastlz}
+rm -r fastlz
+sed -e '/name=.fastlz/d' -i ../package.xml
+%endif
 
 # Chech version as upstream often forget to update this
 extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
@@ -141,15 +149,22 @@ cp -r NTS ZTS
 
 
 %build
+%{?dtsenable}
+
 peclconf() {
-%configure --enable-memcached-igbinary \
+%configure \
+%if %{with igbinary}
+           --enable-memcached-igbinary \
+%endif
            --enable-memcached-json \
            --enable-memcached-sasl \
-%ifnarch ppc64
+%if %{with msgpack}
            --enable-memcached-msgpack \
 %endif
            --enable-memcached-protocol \
-           --with-system-fastlz \
+%if %{with fastlz}
+            --with-system-fastlz \
+%endif
            --with-php-config=$1
 }
 cd NTS
@@ -165,6 +180,8 @@ make %{?_smp_mflags}
 %endif
 
 %install
+%{?dtsenable}
+
 # Install the NTS extension
 make install -C NTS INSTALL_ROOT=%{buildroot}
 
@@ -188,6 +205,11 @@ do install -Dpm 644 $i %{buildroot}%{pecl_docdir}/%{pecl_name}/$i
 done
 
 %check
+%if "%{php_version}" < "7.3"
+# ::1:50770 vs [::1]:%s
+rm ?TS/tests/memcachedserver6.phpt
+%endif
+
 OPT="-n"
 [ -f %{php_extdir}/igbinary.so ] && OPT="$OPT -d extension=igbinary.so"
 [ -f %{php_extdir}/json.so ]     && OPT="$OPT -d extension=json.so"
@@ -205,9 +227,7 @@ OPT="-n"
     --modules | grep %{pecl_name}
 %endif
 
-%if %{with_tests}
-# XFAIL and very slow so no value
-rm ?TS/tests/expire.phpt
+%if %{with tests}
 
 ret=0
 
@@ -216,9 +236,12 @@ port=$(%{__php} -r 'echo 10000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + 
 memcached -p $port -U $port      -d -P $PWD/memcached.pid
 sed -e "s/11211/$port/" -i ?TS/tests/*
 
+: Port for MemcachedServer
+port=$(%{__php} -r 'echo 11000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + PHP_INT_SIZE;')
+sed -e "s/3434/$port/" -i ?TS/tests/*
+
 : Run the upstream test Suite for NTS extension
 pushd NTS
-rm tests/flush_buffers.phpt tests/touch_binary.phpt
 TEST_PHP_EXECUTABLE=%{__php} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
@@ -229,7 +252,6 @@ popd
 %if %{with_zts}
 : Run the upstream test Suite for ZTS extension
 pushd ZTS
-rm tests/flush_buffers.phpt tests/touch_binary.phpt
 TEST_PHP_EXECUTABLE=%{__ztsphp} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
@@ -258,8 +280,7 @@ fi
 %endif
 
 %files
-%{!?_licensedir:%global license %%doc}
-%license NTS/LICENSE
+%{?_licensedir:%license NTS/LICENSE}
 %doc %{pecl_docdir}/%{pecl_name}
 %{pecl_xmldir}/%{name}.xml
 
