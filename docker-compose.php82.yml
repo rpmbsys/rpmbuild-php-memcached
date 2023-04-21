@@ -1,0 +1,15 @@
+version: "3"
+services:
+  centos7build:
+    volumes:
+      - rpm7:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        centos: $OS7
+        image: php-msgpack-8.2
+
+
+volumes:
+  rpm7:
+    name: rpm7

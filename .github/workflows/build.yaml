@@ -22,13 +22,17 @@ jobs:
             repo: php81custom
             build: centos7build
             uploader: centos7bintray
+          - compose-file: docker-compose.php82.yml
+            repo: php82custom
+            build: centos7build
+            uploader: centos7bintray
     env:
       BUILD_COMPOSE_FILE: ${{ matrix.compose-file }}
       BINTRAY_REPO: ${{ matrix.repo }}
       BUILD: ${{ matrix.build }}
       UPLOADER: ${{ matrix.uploader }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - run: docker-compose -f $BUILD_COMPOSE_FILE build --no-cache $BUILD
