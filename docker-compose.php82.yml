@@ -1,0 +1,28 @@
+version: "3"
+services:
+  rocky8build:
+    volumes:
+      - rpm8rocky:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        os: $RL8
+        image: php-msgpack-8.2
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+  stream9build:
+    volumes:
+      - rpm9stream:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        os: $OS9
+        image: php-msgpack-8.2
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+
+volumes:
+  rpm8rocky:
+    name: rpm8rocky
+  rpm9stream:
+    name: rpm9stream
