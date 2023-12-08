@@ -1,5 +1,5 @@
 ARG centos=7.9.2009
-ARG image=php-msgpack-7.4
+ARG image=php-msgpack-8.3
 
 FROM aursu/peclbuild:${centos}-${image}
 

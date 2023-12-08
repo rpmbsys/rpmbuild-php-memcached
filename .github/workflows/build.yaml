@@ -7,7 +7,11 @@ env:
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
   OS7: 7.9.2009
+  RL8: 8.8.20230518
   OS7TAG: 7.9.2009
+  RL8TAG: 8.8.20230518
+  OS9: stream9-20231016.0
+  OS9TAG: stream9-20231016.0
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,7 +19,7 @@ jobs:
       matrix:
         include:
           - compose-file: docker-compose.yml
-            repo: php74custom
+            repo: php83custom
             build: centos7build
             uploader: centos7bintray
           - compose-file: docker-compose.php81.yml

@@ -1,7 +1,7 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2021 Remi Collet
-# License: CC-BY-SA
+# Copyright (c) 2009-2023 Remi Collet
+# License: CC-BY-SA-4.0
 # http://creativecommons.org/licenses/by-sa/4.0/
 #
 # Please, preserve the changelog entries
@@ -19,27 +19,24 @@
 # After 40-igbinary, 40-json, 40-msgpack
 %global ini_name    50-%{pecl_name}.ini
 
+%global upstream_version 3.2.0
+#global upstream_prever  RC1
+# upstream use    dev => alpha => beta => RC
+# make RPM happy  DEV => alpha => beta => rc
+#global upstream_lower   rc1
+
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
-Version:      3.1.5
-Release:      8%{?dist}
-License:      PHP
+Version:      %{upstream_version}%{?upstream_prever:~%{upstream_lower}}
+Release:      7%{?dist}
+License:      PHP-3.01
 Group:        Development/Languages
 URL:          https://pecl.php.net/package/%{pecl_name}
 
-Source0:      https://pecl.php.net/get/%{pecl_name}-%{version}.tgz
+Source0:      https://pecl.php.net/get/%{pecl_name}-%{upstream_version}%{?upstream_prever}.tgz
 
-Patch0:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/461.patch
-Patch1:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/463.patch
-Patch2:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/465.patch
-Patch3:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/467.patch
-Patch4:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/468.patch
-Patch5:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/469.patch
-Patch6:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/472.patch
-Patch7:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/473.patch
-Patch8:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/486.patch
-Patch9:       https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/487.patch
-Patch10:      https://patch-diff.githubusercontent.com/raw/php-memcached-dev/php-memcached/pull/488.patch
+# upstream patch for PHP 8.2
+Patch0:        %{pecl_name}-upstream.patch
 
 BuildRequires: make
 BuildRequires: gcc
@@ -98,7 +95,7 @@ It also provides a session handler (memcached).
 
 %prep
 %setup -c -q
-mv %{pecl_name}-%{version}%{?prever} NTS
+mv %{pecl_name}-%{upstream_version}%{?upstream_prever} NTS
 
 # Don't install/register tests
 sed -e 's/role="test"/role="src"/' \
@@ -110,25 +107,13 @@ rm -r NTS/fastlz
 
 cd NTS
 
-%if "%{php_version}" > "8.0"
-%patch0 -p1 -b .pr461
-%patch1 -p1 -b .pr463
-%patch2 -p1 -b .pr465
-%patch3 -p1 -b .pr467
-%patch4 -p1 -b .pr468
-%patch5 -p1 -b .pr469
-%patch6 -p1 -b .pr472
-%patch7 -p1 -b .pr473
-%patch8 -p1 -b .pr486
-%patch9 -p1 -b .pr487
-%patch10 -p1 -b .pr488
-%endif
+%patch -P0 -p1
 
 # Chech version as upstream often forget to update this
 extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
-if test "x${extver}" != "x%{version}%{?gh_date:-dev}%{?intver}"; then
-   : Error: Upstream HTTP version is now ${extver}, expecting %{version}.
-   : Update the pdover macro and rebuild.
+if test "x${extver}" != "x%{upstream_version}%{?upstream_prever:%{upstream_prever}}"; then
+   : Error: Upstream extension version is ${extver}, expecting %{upstream_version}%{?upstream_prever:%{upstream_prever}}.
+   : Update the macro and rebuild.
    exit 1
 fi
 cd ..
@@ -292,6 +277,9 @@ fi
 
 
 %changelog
+* Tue Oct 03 2023 Remi Collet <remi@remirepo.net> - 3.2.0-7
+- rebuild for https://fedoraproject.org/wiki/Changes/php83
+
 * Thu Oct 28 2021 Remi Collet <remi@remirepo.net> - 3.1.5-8
 - add patch got PHP 8.1 from
   https://github.com/php-memcached-dev/php-memcached/pull/486
