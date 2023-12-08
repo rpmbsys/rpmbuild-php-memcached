@@ -1,5 +1,5 @@
 ARG os=8.7.20221112
-ARG image=php-msgpack-7.4
+ARG image=php-msgpack-8.3
 
 FROM aursu/peclbuild:${os}-${image}
 

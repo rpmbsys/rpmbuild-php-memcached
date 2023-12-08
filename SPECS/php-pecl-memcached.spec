@@ -1,7 +1,7 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2022 Remi Collet
-# License: CC-BY-SA
+# Copyright (c) 2009-2023 Remi Collet
+# License: CC-BY-SA-4.0
 # http://creativecommons.org/licenses/by-sa/4.0/
 #
 # Please, preserve the changelog entries
@@ -10,61 +10,54 @@
 # we don't want -z defs linker flag
 %undefine _strict_symbol_defs_build
 
-%define _debugsource_template %{nil}
-%define debug_package %{nil}
-
-%bcond_without fastlz
-%bcond_without igbinary
-%bcond_without msgpack
-%bcond_without tests
-
 %global with_zts    0%{!?_without_zts:%{?__ztsphp:1}}
+%global with_tests  0%{!?_without_tests:1}
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
 %global ini_name    50-%{pecl_name}.ini
 
+%global upstream_version 3.2.0
+#global upstream_prever  RC1
+# upstream use    dev => alpha => beta => RC
+# make RPM happy  DEV => alpha => beta => rc
+#global upstream_lower   rc1
+
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
-Version:      3.2.0
-Release:      3%{?dist}
-License:      PHP
+Version:      %{upstream_version}%{?upstream_prever:~%{upstream_lower}}
+Release:      7%{?dist}
+License:      PHP-3.01
 URL:          https://pecl.php.net/package/%{pecl_name}
 
-Source0:      https://pecl.php.net/get/%{pecl_name}-%{version}.tgz
+Source0:      https://pecl.php.net/get/%{pecl_name}-%{upstream_version}%{?upstream_prever}.tgz
 
 # upstream patch for PHP 8.2
 Patch0:        %{pecl_name}-upstream.patch
 
+BuildRequires: make
 BuildRequires: gcc
 BuildRequires: php-devel >= 7
 BuildRequires: php-pear
 BuildRequires: php-json
-%if %{with igbinary}
 BuildRequires: php-pecl-igbinary-devel
-%endif
-%if %{with msgpack}
+%ifnarch ppc64
 BuildRequires: php-pecl-msgpack-devel
 %endif
+BuildRequires: libevent-devel  > 2
+BuildRequires: libmemcached-devel >= 1.0.18
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
-%if %{with fastlz}
 BuildRequires: fastlz-devel
-%endif
-%if %{with tests}
+%if %{with_tests}
 BuildRequires: memcached
 %endif
-BuildRequires: pkgconfig(libevent) >= 2.0.2
-BuildRequires: pkgconfig(libmemcached) >= 1.1
 
 Requires:     php-json%{?_isa}
+Requires:     php-igbinary%{?_isa}
 Requires:     php(zend-abi) = %{php_zend_api}
 Requires:     php(api) = %{php_core_api}
-%if %{with igbinary}
-Requires:     php-igbinary%{?_isa}
-%endif
-
-%if %{with msgpack}
-Requires:    php-msgpack%{?_isa}
+%ifnarch ppc64
+Requires:     php-msgpack%{?_isa}
 %endif
 
 Provides:     php-%{pecl_name} = %{version}
@@ -72,40 +65,37 @@ Provides:     php-%{pecl_name}%{?_isa} = %{version}
 Provides:     php-pecl(%{pecl_name}) = %{version}
 Provides:     php-pecl(%{pecl_name})%{?_isa} = %{version}
 
-%{?filter_setup}
 
 %description
 This extension uses libmemcached library to provide API for communicating
 with memcached servers.
 
 memcached is a high-performance, distributed memory object caching system,
-generic in nature, but intended for use in speeding up dynamic web
+generic in nature, but intended for use in speeding up dynamic web 
 applications by alleviating database load.
 
-It also provides a session handler (memcached).
+It also provides a session handler (memcached). 
 
 
-%prep
+%prep 
 %setup -c -q
-mv %{pecl_name}-%{version} NTS
+mv %{pecl_name}-%{upstream_version}%{?upstream_prever} NTS
 
 # Don't install/register tests
 sed -e 's/role="test"/role="src"/' \
-    %{?_licensedir:-e '/LICENSE/s/role="doc"/role="src"/' } \
+    -e '/LICENSE/s/role="doc"/role="src"/' \
+    -e '/name=.fastlz/d' \
     -i package.xml
 
-cd NTS
-%patch0 -p1
+rm -r NTS/fastlz
 
-%if %{with fastlz}
-rm -r fastlz
-sed -e '/name=.fastlz/d' -i ../package.xml
-%endif
+cd NTS
+%patch -P0 -p1
 
 # Chech version as upstream often forget to update this
 extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
-if test "x${extver}" != "x%{version}"; then
-   : Error: Upstream extension version is ${extver}, expecting %{version}.
+if test "x${extver}" != "x%{upstream_version}%{?upstream_prever:%{upstream_prever}}"; then
+   : Error: Upstream extension version is ${extver}, expecting %{upstream_version}%{?upstream_prever:%{upstream_prever}}.
    : Update the macro and rebuild.
    exit 1
 fi
@@ -140,22 +130,15 @@ cp -r NTS ZTS
 
 
 %build
-%{?dtsenable}
-
 peclconf() {
-%configure \
-%if %{with igbinary}
-           --enable-memcached-igbinary \
-%endif
+%configure --enable-memcached-igbinary \
            --enable-memcached-json \
            --enable-memcached-sasl \
-%if %{with msgpack}
+%ifnarch ppc64
            --enable-memcached-msgpack \
 %endif
            --enable-memcached-protocol \
-%if %{with fastlz}
-            --with-system-fastlz \
-%endif
+           --with-system-fastlz \
            --with-php-config=$1
 }
 cd NTS
@@ -170,9 +153,8 @@ peclconf %{_bindir}/zts-php-config
 make %{?_smp_mflags}
 %endif
 
-%install
-%{?dtsenable}
 
+%install
 # Install the NTS extension
 make install -C NTS INSTALL_ROOT=%{buildroot}
 
@@ -195,12 +177,8 @@ for i in $(grep 'role="doc"' ../package.xml | sed -e 's/^.*name="//;s/".*$//')
 do install -Dpm 644 $i %{buildroot}%{pecl_docdir}/%{pecl_name}/$i
 done
 
-%check
-%if "%{php_version}" < "7.3"
-# ::1:50770 vs [::1]:%s
-rm ?TS/tests/memcachedserver6.phpt
-%endif
 
+%check
 OPT="-n"
 [ -f %{php_extdir}/igbinary.so ] && OPT="$OPT -d extension=igbinary.so"
 [ -f %{php_extdir}/json.so ]     && OPT="$OPT -d extension=json.so"
@@ -218,7 +196,9 @@ OPT="-n"
     --modules | grep %{pecl_name}
 %endif
 
-%if %{with tests}
+%if %{with_tests}
+# XFAIL and very slow so no value
+rm ?TS/tests/expire.phpt
 
 ret=0
 
@@ -227,12 +207,9 @@ port=$(%{__php} -r 'echo 10000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + 
 memcached -p $port -U $port      -d -P $PWD/memcached.pid
 sed -e "s/11211/$port/" -i ?TS/tests/*
 
-: Port for MemcachedServer
-port=$(%{__php} -r 'echo 11000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + PHP_INT_SIZE;')
-sed -e "s/3434/$port/" -i ?TS/tests/*
-
 : Run the upstream test Suite for NTS extension
 pushd NTS
+rm tests/flush_buffers.phpt tests/touch_binary.phpt
 TEST_PHP_EXECUTABLE=%{__php} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
@@ -243,6 +220,7 @@ popd
 %if %{with_zts}
 : Run the upstream test Suite for ZTS extension
 pushd ZTS
+rm tests/flush_buffers.phpt tests/touch_binary.phpt
 TEST_PHP_EXECUTABLE=%{__ztsphp} \
 TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
 NO_INTERACTION=1 \
@@ -260,8 +238,9 @@ fi
 exit $ret
 %endif
 
+
 %files
-%{?_licensedir:%license NTS/LICENSE}
+%license NTS/LICENSE
 %doc %{pecl_docdir}/%{pecl_name}
 %{pecl_xmldir}/%{name}.xml
 
@@ -275,6 +254,18 @@ exit $ret
 
 
 %changelog
+* Tue Oct 03 2023 Remi Collet <remi@remirepo.net> - 3.2.0-7
+- rebuild for https://fedoraproject.org/wiki/Changes/php83
+
+* Fri Jul 21 2023 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.0-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_39_Mass_Rebuild
+
+* Thu Apr 20 2023 Remi Collet <remi@remirepo.net> - 3.2.0-5
+- use SPDX license ID
+
+* Fri Jan 20 2023 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_38_Mass_Rebuild
+
 * Wed Oct 05 2022 Remi Collet <remi@remirepo.net> - 3.2.0-3
 - rebuild for https://fedoraproject.org/wiki/Changes/php82
 - add upstream patches for PHP 8.2
@@ -521,3 +512,4 @@ exit $ret
 
 * Wed Apr 29 2009 Remi Collet <fedora@famillecollet.com> - 0.1.5-1
 - Initial RPM
+
