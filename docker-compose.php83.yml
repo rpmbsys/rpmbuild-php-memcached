@@ -1,11 +1,12 @@
 services:
-  rocky8build:
+  rocky10build:
     volumes:
-      - rpm8rocky:/home/centos/rpmbuild/RPMS
+      - rpm10rocky:/home/centos/rpmbuild/RPMS
     build:
       context: .
       args:
-        os: $RL8
+        os: $RL10
+        image: php-msgpack-8.3
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=0
   rocky9build:
@@ -15,22 +16,12 @@ services:
       context: .
       args:
         os: $RL9
-    sysctls:
-      - net.ipv6.conf.all.disable_ipv6=0
-  stream9build:
-    volumes:
-      - rpm9stream:/home/centos/rpmbuild/RPMS
-    build:
-      context: .
-      args:
-        os: $OS9
+        image: php-msgpack-8.3
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=0
 
 volumes:
-  rpm8rocky:
-    name: rpm8rocky
   rpm9rocky:
     name: rpm9rocky
-  rpm9stream:
-    name: rpm9stream
+  rpm10rocky:
+    name: rpm10rocky

@@ -6,7 +6,7 @@ services:
       context: .
       args:
         os: $RL10
-        image: php-msgpack-8.2
+        image: php-msgpack-8.4
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=0
   rocky9build:
@@ -16,7 +16,7 @@ services:
       context: .
       args:
         os: $RL9
-        image: php-msgpack-8.2
+        image: php-msgpack-8.4
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=0
 

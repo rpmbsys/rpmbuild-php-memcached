@@ -1,38 +1,35 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2023 Remi Collet
+# Copyright (c) 2009-2024 Remi Collet
 # License: CC-BY-SA-4.0
 # http://creativecommons.org/licenses/by-sa/4.0/
 #
 # Please, preserve the changelog entries
 #
 
-# we don't want -z defs linker flag
-%undefine _strict_symbol_defs_build
+%bcond_without      tests
 
-%global with_zts    0%{!?_without_zts:%{?__ztsphp:1}}
-%global with_tests  0%{!?_without_tests:1}
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
 %global ini_name    50-%{pecl_name}.ini
 
-%global upstream_version 3.2.0
+%global upstream_version 3.3.0
 #global upstream_prever  RC1
 # upstream use    dev => alpha => beta => RC
 # make RPM happy  DEV => alpha => beta => rc
 #global upstream_lower   rc1
+%global sources    %{pecl_name}-%{upstream_version}%{?upstream_prever}
 
 Summary:      Extension to work with the Memcached caching daemon
 Name:         php-pecl-memcached
 Version:      %{upstream_version}%{?upstream_prever:~%{upstream_lower}}
-Release:      7%{?dist}
+Release:      2%{?dist}
 License:      PHP-3.01
 URL:          https://pecl.php.net/package/%{pecl_name}
 
-Source0:      https://pecl.php.net/get/%{pecl_name}-%{upstream_version}%{?upstream_prever}.tgz
+Source0:      https://pecl.php.net/get/%{sources}.tgz
 
-# upstream patch for PHP 8.2
-Patch0:        %{pecl_name}-upstream.patch
+ExcludeArch:   %{ix86}
 
 BuildRequires: make
 BuildRequires: gcc
@@ -48,7 +45,8 @@ BuildRequires: libmemcached-devel >= 1.0.18
 BuildRequires: zlib-devel
 BuildRequires: cyrus-sasl-devel
 BuildRequires: fastlz-devel
-%if %{with_tests}
+BuildRequires: libzstd-devel
+%if %{with tests}
 BuildRequires: memcached
 %endif
 
@@ -79,18 +77,14 @@ It also provides a session handler (memcached).
 
 %prep 
 %setup -c -q
-mv %{pecl_name}-%{upstream_version}%{?upstream_prever} NTS
-
 # Don't install/register tests
 sed -e 's/role="test"/role="src"/' \
     -e '/LICENSE/s/role="doc"/role="src"/' \
     -e '/name=.fastlz/d' \
     -i package.xml
 
-rm -r NTS/fastlz
-
-cd NTS
-%patch -P0 -p1
+cd %{sources}
+rm -r fastlz
 
 # Chech version as upstream often forget to update this
 extver=$(sed -n '/#define PHP_MEMCACHED_VERSION/{s/.* "//;s/".*$//;p}' php_memcached.h)
@@ -122,15 +116,14 @@ extension=%{pecl_name}.so
 EOF
 
 # default options with description from upstream
-cat NTS/memcached.ini >>%{ini_name}
-
-%if %{with_zts}
-cp -r NTS ZTS
-%endif
+cat %{sources}/memcached.ini >>%{ini_name}
 
 
 %build
-peclconf() {
+cd %{sources}
+%{__phpize}
+sed -e 's/INSTALL_ROOT/DESTDIR/' -i build/Makefile.global
+
 %configure --enable-memcached-igbinary \
            --enable-memcached-json \
            --enable-memcached-sasl \
@@ -139,40 +132,25 @@ peclconf() {
 %endif
            --enable-memcached-protocol \
            --with-system-fastlz \
-           --with-php-config=$1
-}
-cd NTS
-%{_bindir}/phpize
-peclconf %{_bindir}/php-config
-make %{?_smp_mflags}
+           --with-zstd \
+           --with-php-config=%{__phpconfig}
 
-%if %{with_zts}
-cd ../ZTS
-%{_bindir}/zts-phpize
-peclconf %{_bindir}/zts-php-config
-make %{?_smp_mflags}
-%endif
+%make_build
 
 
 %install
-# Install the NTS extension
-make install -C NTS INSTALL_ROOT=%{buildroot}
+cd %{sources}
 
-# Drop in the bit of configuration
-# rename to z-memcached to be load after msgpack
-install -D -m 644 %{ini_name} %{buildroot}%{php_inidir}/%{ini_name}
+: Install the extension
+%make_install
 
-# Install XML package description
-install -D -m 644 package.xml %{buildroot}%{pecl_xmldir}/%{name}.xml
+: Drop in the bit of configuration
+install -D -m 644 ../%{ini_name} %{buildroot}%{php_inidir}/%{ini_name}
 
-# Install the ZTS extension
-%if %{with_zts}
-make install -C ZTS INSTALL_ROOT=%{buildroot}
-install -D -m 644 %{ini_name} %{buildroot}%{php_ztsinidir}/%{ini_name}
-%endif
+: Install XML package description
+install -D -m 644 ../package.xml %{buildroot}%{pecl_xmldir}/%{name}.xml
 
-# Documentation
-cd NTS
+: Install the Documentation
 for i in $(grep 'role="doc"' ../package.xml | sed -e 's/^.*name="//;s/".*$//')
 do install -Dpm 644 $i %{buildroot}%{pecl_docdir}/%{pecl_name}/$i
 done
@@ -187,47 +165,31 @@ OPT="-n"
 : Minimal load test for NTS extension
 %{__php} $OPT \
     -d extension=%{buildroot}%{php_extdir}/%{pecl_name}.so \
-    --modules | grep %{pecl_name}
+    --modules | grep '^%{pecl_name}$'
 
-%if %{with_zts}
-: Minimal load test for ZTS extension
-%{__ztsphp} $OPT \
-    -d extension=%{buildroot}%{php_ztsextdir}/%{pecl_name}.so \
-    --modules | grep %{pecl_name}
-%endif
-
-%if %{with_tests}
+%if %{with tests}
+cd %{sources}
 # XFAIL and very slow so no value
-rm ?TS/tests/expire.phpt
+rm tests/expire.phpt
+rm tests/flush_buffers.phpt
+rm tests/touch_binary.phpt
 
 ret=0
 
 : Launch the Memcached service
 port=$(%{__php} -r 'echo 10000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + PHP_INT_SIZE;')
 memcached -p $port -U $port      -d -P $PWD/memcached.pid
-sed -e "s/11211/$port/" -i ?TS/tests/*
+sed -e "s/11211/$port/" -i tests/*
+
+: Port for MemcachedServer
+port=$(%{__php} -r 'echo 11000 + PHP_MAJOR_VERSION*100 + PHP_MINOR_VERSION*10 + PHP_INT_SIZE;')
+sed -e "s/3434/$port/" -i tests/*
 
 : Run the upstream test Suite for NTS extension
-pushd NTS
-rm tests/flush_buffers.phpt tests/touch_binary.phpt
 TEST_PHP_EXECUTABLE=%{__php} \
-TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
-NO_INTERACTION=1 \
+TEST_PHP_ARGS="$OPT -d extension=%{buildroot}%{php_extdir}/%{pecl_name}.so" \
 REPORT_EXIT_STATUS=1 \
-%{__php} -n run-tests.php -x --show-diff || ret=1
-popd
-
-%if %{with_zts}
-: Run the upstream test Suite for ZTS extension
-pushd ZTS
-rm tests/flush_buffers.phpt tests/touch_binary.phpt
-TEST_PHP_EXECUTABLE=%{__ztsphp} \
-TEST_PHP_ARGS="$OPT -d extension=$PWD/modules/%{pecl_name}.so" \
-NO_INTERACTION=1 \
-REPORT_EXIT_STATUS=1 \
-%{__ztsphp} -n run-tests.php -x --show-diff || ret=1
-popd
-%endif
+%{__php} -n run-tests.php -q -x --show-diff || ret=1
 
 # Cleanup
 if [ -f memcached.pid ]; then
@@ -240,20 +202,46 @@ exit $ret
 
 
 %files
-%license NTS/LICENSE
+%license %{sources}/LICENSE
 %doc %{pecl_docdir}/%{pecl_name}
 %{pecl_xmldir}/%{name}.xml
 
 %config(noreplace) %{php_inidir}/%{ini_name}
 %{php_extdir}/%{pecl_name}.so
 
-%if %{with_zts}
-%config(noreplace) %{php_ztsinidir}/%{ini_name}
-%{php_ztsextdir}/%{pecl_name}.so
-%endif
-
 
 %changelog
+* Sat Jan 18 2025 Fedora Release Engineering <releng@fedoraproject.org> - 3.3.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_42_Mass_Rebuild
+
+* Fri Oct 18 2024 Remi Collet <remi@remirepo.net> - 3.3.0-1
+- update to 3.3.0
+- enable zstd compression support
+
+* Wed Oct 16 2024 Remi Collet <remi@fedoraproject.org> - 3.2.0-13
+- modernize the spec file
+
+* Mon Oct 14 2024 Remi Collet <remi@fedoraproject.org> - 3.2.0-12
+- rebuild for https://fedoraproject.org/wiki/Changes/php84
+
+* Fri Jul 19 2024 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.0-11
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
+
+* Tue Apr 16 2024 Remi Collet <remi@remirepo.net> - 3.2.0-10
+- drop 32-bit support
+  https://fedoraproject.org/wiki/Changes/php_no_32_bit
+
+* Tue Jan 30 2024 Remi Collet <remi@remirepo.net> - 3.2.0-9
+- build out of sources tree
+- fix incompatible pointer types using patch from
+  https://github.com/php-memcached-dev/php-memcached/pull/555
+
+* Thu Jan 25 2024 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.0-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
+
+* Sun Jan 21 2024 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.0-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
+
 * Tue Oct 03 2023 Remi Collet <remi@remirepo.net> - 3.2.0-7
 - rebuild for https://fedoraproject.org/wiki/Changes/php83
 
