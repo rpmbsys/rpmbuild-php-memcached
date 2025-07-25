@@ -7,6 +7,7 @@ RUN dnf -y install \
         cyrus-sasl-devel \
         fastlz-devel \
         libevent-devel \
+        libzstd-devel \
         memcached \
         zlib-devel \
     && dnf clean all && rm -rf /var/cache/dnf
