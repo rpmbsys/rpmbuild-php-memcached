@@ -1,19 +1,21 @@
 # Fedora spec file for php-pecl-memcached
 #
-# Copyright (c) 2009-2024 Remi Collet
-# License: CC-BY-SA-4.0
-# http://creativecommons.org/licenses/by-sa/4.0/
+# SPDX-FileCopyrightText:  Copyright 2009-2025 Remi Collet
+# SPDX-License-Identifier: CECILL-2.1
+# http://www.cecill.info/licences/Licence_CeCILL_V2-en.txt
 #
 # Please, preserve the changelog entries
 #
 
 %bcond_without      tests
 
+%global pie_vend    php-memcached
+%global pie_proj    php-memcached
 %global pecl_name   memcached
 # After 40-igbinary, 40-json, 40-msgpack
 %global ini_name    50-%{pecl_name}.ini
 
-%global upstream_version 3.3.0
+%global upstream_version 3.4.0
 #global upstream_prever  RC1
 # upstream use    dev => alpha => beta => RC
 # make RPM happy  DEV => alpha => beta => rc
@@ -58,10 +60,11 @@ Requires:     php(api) = %{php_core_api}
 Requires:     php-msgpack%{?_isa}
 %endif
 
-Provides:     php-%{pecl_name} = %{version}
-Provides:     php-%{pecl_name}%{?_isa} = %{version}
-Provides:     php-pecl(%{pecl_name}) = %{version}
-Provides:     php-pecl(%{pecl_name})%{?_isa} = %{version}
+Provides:     php-%{pecl_name}                 = %{version}
+Provides:     php-%{pecl_name}%{?_isa}         = %{version}
+Provides:     php-pecl(%{pecl_name})           = %{version}
+Provides:     php-pecl(%{pecl_name})%{?_isa}   = %{version}
+Provides:     php-pie(%{pie_vend}/%{pie_proj}) = %{version}
 
 
 %description
@@ -211,6 +214,14 @@ exit $ret
 
 
 %changelog
+* Sat Jan 17 2026 Fedora Release Engineering <releng@fedoraproject.org> - 3.4.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_44_Mass_Rebuild
+
+* Tue Oct 14 2025 Remi Collet <remi@remirepo.net> - 3.4.0-1
+- update to 3.4.0
+- re-license spec file to CECILL-2.1
+- add pie virtual provides
+
 * Sat Jan 18 2025 Fedora Release Engineering <releng@fedoraproject.org> - 3.3.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_42_Mass_Rebuild
 
@@ -500,4 +511,3 @@ exit $ret
 
 * Wed Apr 29 2009 Remi Collet <fedora@famillecollet.com> - 0.1.5-1
 - Initial RPM
-
